@@ -1,14 +1,19 @@
 package com.demo.statelessDemo.entities;
 
-
 import jakarta.persistence.*;
-
 import java.util.Objects;
 
 @Entity
 @Table(name = "pessoas")
 public class People {
 
+    @Override
+    public String toString() {
+        return "People{" +
+                "Id= " + Id +
+                ", name= '" + name + '\'' +
+                '}';
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
