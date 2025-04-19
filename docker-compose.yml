@@ -1,0 +1,17 @@
+version: '3'
+services:
+  stateless-db:
+    container_name: stateless-db
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: api-db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    networks:
+      - auth
+    ports:
+      - "5433:5432"
+
+networks:
+  auth:
+    driver: bridge
