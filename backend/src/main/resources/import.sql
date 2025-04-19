@@ -1,1 +1,0 @@
-INSERT INTO pessoas (id, nome) values (1, 'Teste da Silva');
