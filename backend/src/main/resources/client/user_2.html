@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Queue Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #chat-container {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            height: 400px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        .admin-message {
+            background-color: #e6f7ff;
+        }
+        .user-message {
+            background-color: #e8f5e9;
+        }
+        .control-panel {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 8px 15px;
+            cursor: pointer;
+        }
+        #status {
+            margin-top: 10px;
+            color: green;
+        }
+    </style>
+</head>
+<body>
+<h1>Queue Management</h1>
+
+<div class="control-panel">
+    <button id="get-next">Get Next Person</button>
+    <button id="view-queue">View Queue</button>
+    <div id="status"></div>
+</div>
+
+<div id="chat-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.5.2/dist/sockjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const chatContainer = document.getElementById('chat-container');
+        const getNextBtn = document.getElementById('get-next');
+        const viewQueueBtn = document.getElementById('view-queue');
+        const statusDiv = document.getElementById('status');
+
+        let stompClient = null;
+
+        // Connect to WebSocket
+        function connectWebSocket() {
+            const socket = new SockJS('http://localhost:8080/ws');
+            stompClient = Stomp.over(socket);
+
+            stompClient.connect({}, function(frame) {
+                console.log('Connected to WebSocket');
+
+                // Subscribe to public topic to receive broadcasts
+                stompClient.subscribe('/queue/departamento_2', function(message) {
+                    showMessage(JSON.parse(message.body));
+                });
+            });
+        }
+
+        // Initialize WebSocket connection
+        connectWebSocket();
+
+        // Event listeners for REST operations
+        getNextBtn.addEventListener('click', getNextPerson);
+        viewQueueBtn.addEventListener('click', viewQueue);
+
+        function getNextPerson() {
+            fetch('http://localhost:8080/people/getNext', {
+                method: 'DELETE'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    statusDiv.textContent = `Processed: ${data.name}`;
+                    statusDiv.style.color = 'green';
+                    setTimeout(() => statusDiv.textContent = '', 3000);
+                })
+                .catch(error => {
+                    console.error('Error getting next person:', error);
+                    statusDiv.textContent = 'Error processing next person';
+                    statusDiv.style.color = 'red';
+                });
+        }
+
+        function viewQueue() {
+            fetch('http://localhost:8080/people/getAll', {
+                method: 'GET'
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    statusDiv.textContent = 'Queue refreshed';
+                    statusDiv.style.color = 'green';
+                    setTimeout(() => statusDiv.textContent = '', 3000);
+                })
+                .catch(error => {
+                    console.error('Error viewing queue:', error);
+                    statusDiv.textContent = 'Error viewing queue';
+                    statusDiv.style.color = 'red';
+                });
+        }
+
+        function showMessage(message) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message');
+
+            if (message.sender === 'Admin') {
+                messageElement.classList.add('admin-message');
+            } else {
+                messageElement.classList.add('user-message');
+            }
+
+            messageElement.innerHTML = `<strong>${message.sender}:</strong> ${message.content}`;
+            chatContainer.appendChild(messageElement);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+    });
+</script>
+</body>
+</html>

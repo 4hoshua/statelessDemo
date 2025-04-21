@@ -76,7 +76,7 @@
                 console.log('Connected to WebSocket');
 
                 // Subscribe to public topic to receive broadcasts
-                stompClient.subscribe('/topic/public', function(message) {
+                stompClient.subscribe('/queue/departamento_5', function(message) {
                     showMessage(JSON.parse(message.body));
                 });
             });

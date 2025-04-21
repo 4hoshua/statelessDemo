@@ -2,6 +2,7 @@ package com.demo.statelessDemo.entities;
 
 import jakarta.persistence.*;
 import java.util.Objects;
+import com.demo.statelessDemo.entities.Department;
 
 @Entity
 @Table(name = "pessoas")
@@ -22,12 +23,21 @@ public class People {
     @Column(name = "nome")
     private String name;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "departamento")
+    private Department department;
+
     public People(){}
 
-    public People(long id, String name) {
+    public People(long id, String name, Department department) {
         Id = id;
         this.name = name;
+        this.department = department;
     }
+
+    public Department getDepartment() {return department;}
+
+    public void setDepartment(Department department) {this.department = department;}
 
     public long getId() {return Id;}
 
