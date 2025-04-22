@@ -90,13 +90,13 @@
         viewQueueBtn.addEventListener('click', viewQueue);
 
         function getNextPerson() {
-            fetch('http://localhost:8080/people/getNext', {
+            fetch('http://localhost:8080/people/getNext/departamento_2', {
                 method: 'DELETE'
             })
                 .then(response => response.json())
                 .then(data => {
                     statusDiv.textContent = `Processed: ${data.name}`;
-                    statusDiv.style.color = 'green';
+                    statusDiv.style.color = 'yellow';
                     setTimeout(() => statusDiv.textContent = '', 3000);
                 })
                 .catch(error => {
@@ -107,7 +107,7 @@
         }
 
         function viewQueue() {
-            fetch('http://localhost:8080/people/getAll', {
+            fetch('http://localhost:8080/people/getAll/departamento_2', {
                 method: 'GET'
             })
                 .then(response => {

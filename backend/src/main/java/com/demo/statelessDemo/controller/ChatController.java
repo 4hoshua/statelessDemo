@@ -1,6 +1,7 @@
 package com.demo.statelessDemo.controller;
 
 import com.demo.statelessDemo.entities.ChatMessage;
+import com.demo.statelessDemo.entities.Department;
 import com.demo.statelessDemo.entities.MessageType;
 import com.demo.statelessDemo.entities.People;
 import com.demo.statelessDemo.services.PeopleServices;
@@ -33,52 +34,35 @@ public class ChatController {
     // selectInsertQueue é a função da lógica de inserir em uma fila conforme o departamento obtido por chooseQueue
     @PostMapping
     public People insertQueue(@RequestBody People people) {
+
         People savedPerson = services.insert(people);
         return selectInsertQueue(Objects.requireNonNull(chooseQueue(savedPerson)), savedPerson);
     }
 
-    //Aqui o usuário vai ser deletado do banco, chamado no chat e depois removido da fila. Falta lógica de exceção.
-    @DeleteMapping(value = "/getNext")
-    public People getNextPeople() {
-
-        Long id = hashMapQueue_1.firstEntry().getKey();
-
-        People deletedPeople = services.delete(id);
-
-        ChatMessage message = new ChatMessage();
-        message.setType(MessageType.valueOf("CHAT"));
-        message.setSender("User");
-        message.setContent(String.valueOf(hashMapQueue_1.firstEntry()));
-
-        hashMapQueue_1.remove(id);
-
-        messagingTemplate.convertAndSend("/queue/public", message);
-
-        return deletedPeople;
-
-    }
-
+    //Implementação: Restringir Get para User
     //Ver quantas pessoas estão na fila
-    @GetMapping(value = "/getAll")
-    public void getAllQueue() {
+    @GetMapping(value = "/getAll/departamento_{department}")
+    public void getAllQueuesDepartment(@PathVariable Integer department) {
 
-        ChatMessage message = new ChatMessage();
+        Department departmentEnum = Department.values()[department - 1];
+        String lowerCase = String.valueOf(departmentEnum);
+        getAllQueue(Objects.requireNonNull(chooseQueue(department)), lowerCase.toLowerCase());
 
-        Set<Map.Entry<Long, String>> entrySet = hashMapQueue_1.entrySet();
+    }
 
-        Iterator<Map.Entry<Long, String>> it = entrySet.iterator();
+    //Implementação: Restringir Delete para User
+    //Chamar o próximo e deletar do banco de dados e queue
+    @DeleteMapping(value = "/getNext/departamento_{department}")
+    public People getNextPeople(@PathVariable Integer department) {
 
-        while (it.hasNext()) {
-            message.setType(MessageType.valueOf("CHAT"));
-            message.setSender("User");
-            message.setContent(String.valueOf(it.next()));
-
-            messagingTemplate.convertAndSend("/queue/public", message);
-        }
+        Department departmentEnum = Department.values()[department - 1];
+        String lowerCase = String.valueOf(departmentEnum);
+        return getNext(Objects.requireNonNull(chooseQueue(department)), lowerCase.toLowerCase());
 
     }
 
 
+    //Selecionar Departamento com base em People ou Integer
     private LinkedHashMap<Long, String> chooseQueue(People people) {
 
         String department = String.valueOf(people.getDepartment());
@@ -94,7 +78,20 @@ public class ChatController {
 
     }
 
-    //Essa função é responsável pela lógica de todas as queue
+    private LinkedHashMap<Long, String> chooseQueue(Integer departmentNumber) {
+
+        return switch (departmentNumber) {
+            case (1) -> hashMapQueue_1;
+            case (2) -> hashMapQueue_2;
+            case (3) -> hashMapQueue_3;
+            case (4) -> hashMapQueue_4;
+            case (5) -> hashMapQueue_5;
+            default -> null;
+        };
+
+    }
+
+    //Essa função é responsável pela lógica de todas as queues
     private People selectInsertQueue(LinkedHashMap<Long, String> selectedQueue, People people) {
 
         //Se estiver vazia ele vai notificar que alguém foi adicionado
@@ -120,6 +117,42 @@ public class ChatController {
         return people;
     }
 
+    //Aplica a lógica para chamar todos da queue
+    private void getAllQueue(LinkedHashMap<Long, String> selectedQueue, String departamentoRota) {
 
+        ChatMessage message = new ChatMessage();
+
+        Set<Map.Entry<Long, String>> entrySet = selectedQueue.entrySet();
+
+        Iterator<Map.Entry<Long, String>> it = entrySet.iterator();
+
+        while (it.hasNext()) {
+            message.setType(MessageType.valueOf("CHAT"));
+            message.setSender("User");
+            message.setContent(String.valueOf(it.next()));
+
+            messagingTemplate.convertAndSend("/queue/" + departamentoRota, message);
+        }
+
+    }
+
+    //Aplica a lógica para chamar o próximo e deletar da queue e banco de dados
+    private People getNext(LinkedHashMap<Long, String> selectedQueue, String departamentoRota) {
+
+        Long id = selectedQueue.firstEntry().getKey();
+
+        People deletedPeople = services.delete(id);
+
+        ChatMessage message = new ChatMessage();
+        message.setType(MessageType.valueOf("CHAT"));
+        message.setSender("User");
+        message.setContent("Chamando: " + String.valueOf(selectedQueue.firstEntry()));
+
+        selectedQueue.remove(id);
+
+        messagingTemplate.convertAndSend("/queue/"  + departamentoRota, message);
+
+        return deletedPeople;
+    }
 
 }
